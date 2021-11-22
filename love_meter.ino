@@ -1,19 +1,19 @@
+#include <Servo.h>
+
 /*
     LOVE METER
 */
 
+Servo myServo;
+
 const int sensorPin = A0; // Pin for TMP sensor
 float baselineTemp = 20.0;
+float hottestTemp = 26.0;
+int angle;
 
 void setup() {
   // Open a serial port to see values from analog input
   Serial.begin(9600);
-
-  // Initialize LED pins
-  for(int pinNumber=2; pinNumber<5; pinNumber++){
-    pinMode(pinNumber, OUTPUT);
-    digitalWrite(pinNumber, LOW);  
-  }
 
   // Get average baselineTemp from the first 5 seconds of sensor readings
   int readings[500];
@@ -56,9 +56,15 @@ void setup() {
 
   // Convert the voltage to temperature in degrees
   // See: https://www.arduino.cc/documents/datasheets/TEMP-TMP35_36_37.pdf
-  float baselineTemp = (voltage - 0.5) * 100;
+  baselineTemp = (voltage - 0.5) * 100;
   Serial.print("Baseline Temperature: ");
   Serial.println(baselineTemp);
+  hottestTemp = baselineTemp + 6;
+  Serial.print("Hottest Temperature: ");
+  Serial.println(hottestTemp);
+
+  // Servo motor is getting input on pin 9
+  myServo.attach(9);
 }
 
 void loop() {
@@ -78,24 +84,14 @@ void loop() {
   Serial.print(", degrees C: ");
   Serial.println(temperature);
 
-  // For every 2 degrees C, light up an LED
-  if (temperature < baselineTemp+2){
-    digitalWrite(2, LOW);  
-    digitalWrite(3, LOW); 
-    digitalWrite(4, LOW); 
-  } else if(temperature >= baselineTemp+2 && temperature < baselineTemp+4){
-    digitalWrite(2, LOW);  
-    digitalWrite(3, LOW); 
-    digitalWrite(4, HIGH); 
-  } else if(temperature >= baselineTemp+4 && temperature < baselineTemp+6){
-    digitalWrite(2, LOW);  
-    digitalWrite(3, HIGH); 
-    digitalWrite(4, HIGH);   
-  } else if (temperature >= baselineTemp+6){
-    digitalWrite(2, HIGH);  
-    digitalWrite(3, HIGH); 
-    digitalWrite(4, HIGH);   
-  }
-  // Don't read from ADC too quickly
-  delay(1);
+  // Map temperature to servo motor angle
+  angle = map(temperature, baselineTemp, hottestTemp, 0, 179);
+  Serial.print(", angle: ");
+  Serial.println(angle);
+
+  // Rotate the servo motor
+  myServo.write(angle);
+  // Wait for servo meter to adjust angle
+  delay(15);
+  // TODO: Figure out why - https://forum.arduino.cc/t/temperature-sensor-gives-weird-readings-when-servo-motor-is-attached-why/486094
 }
